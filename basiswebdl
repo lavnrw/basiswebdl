@@ -1,0 +1,160 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import sys
+import configparser
+from pathlib import Path
+import getpass
+import requests
+
+class BasisWebExport:
+    def __init__(self, host, user, password):
+        self.host = host.rstrip('/')
+        self.session = requests.Session()
+        self.session.verify = False  # Do not check TLS certificates.
+        self.session.headers.update(self._token(user, password))
+
+    def _token(self, user, password):
+        host = self.host + "/landesarchiv/login"
+        headers = {"Accept": "text/plain",
+                   "Benutzer": user,
+                   "Passwort": password}
+        token = self.session.post(host, headers=headers)
+        return {"Authorization": "Bearer " + token.text}
+
+    def export(self, prison, year=None, destdir="."):
+        host = self.host + "/landesarchiv/export/" + prison
+        filename = destdir.rstrip('/') + '/' + prison + ".zip"
+        if year:
+            host += "?austrittsjahr=" + year
+            filename = filename.replace(".zip", "-" + year + ".zip")
+        self._download(host, filename)
+
+    def reexport(self, guid, destdir="."):
+        host = self.host + "/landesarchiv/reexport/" + guid
+        filename = destdir.rstrip('/') + '/' + guid + "_reexport.zip"
+        self._download(host, filename)
+
+    def _download(self, host, filename):
+        headers = {"Accept": "application/zip"}
+        data = self.session.get(host, headers=headers)
+        with open(filename, "wb") as f:
+            for c in data.iter_content(chunk_size=128):
+                f.write(c)
+
+    def commit(self, guid):
+        host = self.host + "/landesarchiv/commit/" + guid
+        self.session.put(host)
+
+
+def get_env():
+    def get_args():
+        parser = argparse.ArgumentParser(
+            description="Downloader for BASIS-Web archiving",
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog=examples)
+        parser.add_argument("-d", "--dest", default=".", metavar="DIR",
+                            help="destination directory")
+        parser.add_argument("-c", "--config",
+                            default=Path.home()/".basiswebdl.ini",
+                            metavar="FILE", help="config file")
+        parser.add_argument("--host", help="protocol + host + port")
+        parser.add_argument("--user", help="user name")
+        parser.add_argument("--password", help="password")
+        parser.add_argument("--noproxy",
+                            help="IP range for which no proxy should be used")
+        subparsers = parser.add_subparsers()
+        parser_export = subparsers.add_parser(
+            "export", help="export data for given prisons and years")
+        parser_export.add_argument(
+            "export", nargs="+", metavar="PRISON/YEAR",
+            help="list of prison numbers and years")
+        parser_reexport = subparsers.add_parser(
+            "reexport", help="reexport data for given transactions")
+        parser_reexport.add_argument(
+            "reexport", nargs="+", metavar="UUID", help="transaction ID")
+        parser_commit = subparsers.add_parser(
+            "commit", help="commit given transactions")
+        parser_commit.add_argument(
+            "commit", nargs="+", metavar="UUID", help="transaction ID")
+        return parser.parse_args()
+
+    examples = """examples:
+    basiswebdl export 512 514 2010
+    basiswebdl reexport 9ce73892-226f-11eb-ac3d-005056871b7c
+    basiswebdl commit a3609a2e-226f-11eb-abdf-005056871b7c
+    basiswebdl --host https://10.10.10.10:8443
+               --user alice
+               --password '!@#42'
+               --noproxy 10.0.0.0/8
+               export 512
+    basiswebdl --config ./basiswebdl.ini export 512
+    """
+
+    def get_conf(filepath):
+        conf = configparser.ConfigParser()
+        conf.read(filepath)
+        return conf
+
+    def merge_args_with_conf(args, conf):
+        env = args
+        if not env.host:
+            env.host = get_with_default(conf, "host", "localhost")
+        if not env.user:
+            env.user = get_with_default(conf, "user", getpass.getuser())
+        if not env.password:
+            env.password = get_with_default(conf, "password", "")
+        if not env.noproxy:
+            env.noproxy = get_with_default(conf, "noproxy", "")
+        return env
+
+    def get_with_default(conf, key, default):
+        val = default
+        if "connection" in conf:
+            val = conf["connection"].get(key, default)
+        return val
+
+    def parse_exportlist(export):
+        prisons = []
+        years = []
+        errors = []
+        for word in export:
+            length = len(word)
+            if length == 3:
+                prisons.append(word)
+            elif length == 4:
+                years.append(word)
+            else:
+                errors.append(word)
+        return (prisons, years, errors)
+
+    args = get_args()
+    conf = get_conf(args.config)
+    env = merge_args_with_conf(args, conf)
+    if hasattr(env, "export"):
+        env.export = parse_exportlist(env.export)
+    return env
+
+
+if __name__ == "__main__":
+    env = get_env()
+    os.environ["no_proxy"] = env.noproxy
+    bw = BasisWebExport(env.host, env.user, env.password)
+    if hasattr(env, "export"):
+        (prisons, years, errors) = env.export
+        for e in errors:
+            print("Ignored value " + e +
+                  " - neither a prison number nor a year.")
+        if not years:
+            for p in prisons:
+                bw.export(p, destdir=env.dest)
+        else:
+            for (p, y) in [(p, y) for p in prisons for y in years]:
+                bw.export(p, year=y, destdir=env.dest)
+    if hasattr(env, "reexport"):
+        for guid in env.reexport:
+            bw.reexport(guid, destdir=env.dest)
+    if hasattr(env, "commit"):
+        for guid in env.commit:
+            bw.commit(guid)

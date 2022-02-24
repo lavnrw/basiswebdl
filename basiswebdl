@@ -1,21 +1,20 @@
 #!/usr/bin/python3
 
-import argparse
+from argparse import Namespace, ArgumentParser, RawDescriptionHelpFormatter
 import os
-import sys
-import configparser
+from configparser import ConfigParser
 from pathlib import Path
 import getpass
 import requests
 
 class BasisWebExport:
-    def __init__(self, host, user, password):
+    def __init__(self, host: str, user: str, password: str) -> None:
         self.host = host.rstrip('/')
         self.session = requests.Session()
         self.session.verify = False  # Do not check TLS certificates.
         self.session.headers.update(self._token(user, password))
 
-    def _token(self, user, password):
+    def _token(self, user: str, password: str) -> dict[str, str]:
         host = self.host + "/landesarchiv/login"
         headers = {"Accept": "text/plain",
                    "Benutzer": user,
@@ -23,7 +22,7 @@ class BasisWebExport:
         token = self.session.post(host, headers=headers)
         return {"Authorization": "Bearer " + token.text}
 
-    def export(self, prison, year=None, destdir="."):
+    def export(self, prison: str, year: str = None, destdir: str = ".") -> None:
         host = self.host + "/landesarchiv/export/" + prison
         filename = destdir.rstrip('/') + '/' + prison + ".zip"
         if year:
@@ -31,28 +30,28 @@ class BasisWebExport:
             filename = filename.replace(".zip", "-" + year + ".zip")
         self._download(host, filename)
 
-    def reexport(self, guid, destdir="."):
+    def reexport(self, guid: str, destdir: str = ".") -> None:
         host = self.host + "/landesarchiv/reexport/" + guid
         filename = destdir.rstrip('/') + '/' + guid + "_reexport.zip"
         self._download(host, filename)
 
-    def _download(self, host, filename):
+    def _download(self, host: str, filename: str) -> None:
         headers = {"Accept": "application/zip"}
         data = self.session.get(host, headers=headers)
         with open(filename, "wb") as f:
             for c in data.iter_content(chunk_size=128):
                 f.write(c)
 
-    def commit(self, guid):
+    def commit(self, guid: str) -> None:
         host = self.host + "/landesarchiv/commit/" + guid
         self.session.put(host)
 
 
-def get_env():
-    def get_args():
-        parser = argparse.ArgumentParser(
+def get_env() -> Namespace:
+    def get_args() -> Namespace:
+        parser = ArgumentParser(
             description="Downloader for BASIS-Web archiving",
-            formatter_class=argparse.RawDescriptionHelpFormatter,
+            formatter_class=RawDescriptionHelpFormatter,
             epilog=examples)
         parser.add_argument("-d", "--dest", default=".", metavar="DIR",
                             help="destination directory")
@@ -92,12 +91,12 @@ def get_env():
     basiswebdl --config ./basiswebdl.ini export 512
     """
 
-    def get_conf(filepath):
-        conf = configparser.ConfigParser()
+    def get_conf(filepath: str) -> ConfigParser:
+        conf = ConfigParser()
         conf.read(filepath)
         return conf
 
-    def merge_args_with_conf(args, conf):
+    def merge_args_with_conf(args: Namespace, conf: ConfigParser) -> Namespace:
         env = args
         if not env.host:
             env.host = get_with_default(conf, "host", "localhost")
@@ -109,13 +108,13 @@ def get_env():
             env.noproxy = get_with_default(conf, "noproxy", "")
         return env
 
-    def get_with_default(conf, key, default):
+    def get_with_default(conf: ConfigParser, key: str, default: str) -> str:
         val = default
         if "connection" in conf:
             val = conf["connection"].get(key, default)
         return val
 
-    def parse_exportlist(export):
+    def parse_exportlist(export: list[str]) -> tuple[list[str], list[str], list[str]]:
         prisons = []
         years = []
         errors = []

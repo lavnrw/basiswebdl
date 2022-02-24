@@ -22,20 +22,20 @@ class BasisWebExport:
         token = self.session.post(host, headers=headers)
         return {"Authorization": "Bearer " + token.text}
 
-    def export(self, prison: str, year: str = None, destdir: str = ".") -> None:
+    def export(self, prison: str, year: str = None, destdir: Path = Path(".")) -> None:
         host = self.host + "/landesarchiv/export/" + prison
-        filename = destdir.rstrip('/') + '/' + prison + ".zip"
+        filename = destdir / (prison + ".zip")
         if year:
             host += "?austrittsjahr=" + year
-            filename = filename.replace(".zip", "-" + year + ".zip")
+            filename = filename.with_suffix("-" + year + ".zip")
         self._download(host, filename)
 
-    def reexport(self, guid: str, destdir: str = ".") -> None:
+    def reexport(self, guid: str, destdir: Path = Path(".")) -> None:
         host = self.host + "/landesarchiv/reexport/" + guid
-        filename = destdir.rstrip('/') + '/' + guid + "_reexport.zip"
+        filename = destdir / (guid + "_reexport.zip")
         self._download(host, filename)
 
-    def _download(self, host: str, filename: str) -> None:
+    def _download(self, host: str, filename: Path) -> None:
         headers = {"Accept": "application/zip"}
         data = self.session.get(host, headers=headers)
         with open(filename, "wb") as f:
@@ -53,10 +53,11 @@ def get_env() -> Namespace:
             description="Downloader for BASIS-Web archiving",
             formatter_class=RawDescriptionHelpFormatter,
             epilog=examples)
-        parser.add_argument("-d", "--dest", default=".", metavar="DIR",
-                            help="destination directory")
+        parser.add_argument("-d", "--dest",
+                            type=Path, default=Path("."),
+                            metavar="DIR", help="destination directory")
         parser.add_argument("-c", "--config",
-                            default=Path.home()/".basiswebdl.ini",
+                            type=Path, default=Path.home() / ".basiswebdl.ini",
                             metavar="FILE", help="config file")
         parser.add_argument("--host", help="protocol + host + port")
         parser.add_argument("--user", help="user name")
@@ -91,7 +92,7 @@ def get_env() -> Namespace:
     basiswebdl --config ./basiswebdl.ini export 512
     """
 
-    def get_conf(filepath: str) -> ConfigParser:
+    def get_conf(filepath: Path) -> ConfigParser:
         conf = ConfigParser()
         conf.read(filepath)
         return conf

@@ -13,8 +13,10 @@ from zipfile import ZipFile
 from lxml import etree
 import requests
 
+
 class BasisWebExport:
-    def __init__(self, host: str, user: str, password: str, schemafile: Path = Path(".")) -> None:
+    def __init__(self, host: str, user: str, password: str,
+                 schemafile: Path = Path(".")) -> None:
         self.host = host.rstrip('/')
         self.session = requests.Session()
         self.session.headers.update(self._token(user, password))
@@ -37,7 +39,8 @@ class BasisWebExport:
         logging.debug("Login successful")
         return {"Authorization": "Bearer " + token.text}
 
-    def export(self, prison: str, year: str = None, destdir: Path = Path("."), commit: bool = False) -> None:
+    def export(self, prison: str, year: str = None, destdir: Path = Path("."),
+               commit: bool = False) -> None:
         host = self.host + "/landesarchiv/export/" + prison
         filename = destdir / (prison + ".zip")
         if year:
@@ -170,13 +173,13 @@ def get_env() -> Namespace:
                 "user": getpass.getuser(),
                 "password": "",
                 "noproxy": False
-                },
+            },
             "validation": {
                 "schema": "",
                 "loglevel": "ERROR",
                 "autocommit": False
-                }
-            })
+            }
+        })
         conf.read(filepath)
         return conf
 
@@ -198,7 +201,8 @@ def get_env() -> Namespace:
             env.autocommit = conf["validation"].getboolean("autocommit")
         return env
 
-    def parse_exportlist(export: list[str]) -> tuple[list[str], list[str], list[str]]:
+    def parse_exportlist(
+            export: list[str]) -> tuple[list[str], list[str], list[str]]:
         prisons = []
         years = []
         errors = []

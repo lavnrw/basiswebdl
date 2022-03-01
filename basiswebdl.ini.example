@@ -10,4 +10,4 @@ noproxy = true
 
 [validation]
 schema = /etc/basisweb.xsd
-log = ERROR
+loglevel = ERROR

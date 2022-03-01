@@ -111,7 +111,7 @@ def get_env() -> Namespace:
                             help="don't use the system proxy")
         parser.add_argument("--schema", type=Path,
                             help="XML schema used for validation")
-        parser.add_argument("--log",
+        parser.add_argument("--loglevel",
                             choices=("ERROR", "WARNING", "INFO", "DEBUG"),
                             help="log level (default ERROR)")
         subparsers = parser.add_subparsers()
@@ -139,7 +139,7 @@ def get_env() -> Namespace:
                --password '!@#42'
                --noproxy
                --schema basisweb.xsd
-               --log INFO
+               --loglevel INFO
                export 512
     basiswebdl --config ./basiswebdl.ini export 512
     """
@@ -155,7 +155,7 @@ def get_env() -> Namespace:
                 },
             "validation": {
                 "schema": "",
-                "log": "ERROR"
+                "loglevel": "ERROR"
                 }
             })
         conf.read(filepath)
@@ -174,7 +174,7 @@ def get_env() -> Namespace:
         if not env.schema:
             env.schema = Path(conf["validation"]["schema"])
         if not env.log:
-            env.log = conf["validation"]["log"]
+            env.log = conf["validation"]["loglevel"]
         return env
 
     def parse_exportlist(export: list[str]) -> tuple[list[str], list[str], list[str]]:
@@ -203,7 +203,8 @@ if __name__ == "__main__":
     env = get_env()
     if env.noproxy:
         os.environ["no_proxy"] = "*"
-    logging.basicConfig(format="%(levelname)s: %(message)s", level=env.log)
+    logging.basicConfig(format="%(levelname)s: %(message)s",
+                        level=env.loglevel)
     bw = BasisWebExport(env.host, env.user, env.password, env.schema)
     if hasattr(env, "export"):
         (prisons, years, errors) = env.export

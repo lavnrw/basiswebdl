@@ -1,0 +1,3 @@
+#!/bin/bash
+
+FLASK_APP=testserver/testserver pipenv run flask run

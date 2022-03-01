@@ -38,7 +38,7 @@ class BasisWebExport:
         filename = destdir / (prison + ".zip")
         if year:
             host += "?austrittsjahr=" + year
-            filename = filename.with_suffix("-" + year + ".zip")
+            filename = filename.with_stem(filename.stem + "-" + year)
         self._download(host, filename)
         _ = self._validate(filename)
 

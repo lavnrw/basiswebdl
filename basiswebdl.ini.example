@@ -10,3 +10,4 @@ noproxy = 10.0.0.0/8
 
 [validation]
 schema = basisweb.xsd
+log = ERROR

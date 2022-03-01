@@ -9,6 +9,7 @@ import requests
 from zipfile import ZipFile
 from tempfile import TemporaryDirectory
 from lxml import etree
+import logging
 
 class BasisWebExport:
     def __init__(self, host: str, user: str, password: str, schemafile: Path = None) -> None:
@@ -21,7 +22,7 @@ class BasisWebExport:
             if schemafile.exists():
                 self.schema = etree.XMLSchema(etree.parse(str(schemafile)))
             else:
-                print("Schema file not found: " + str(schemafile))
+                logging.error("schema file not found: %s", schemafile)
 
     def _token(self, user: str, password: str) -> dict[str, str]:
         host = self.host + "/landesarchiv/login"
@@ -38,13 +39,13 @@ class BasisWebExport:
             host += "?austrittsjahr=" + year
             filename = filename.with_suffix("-" + year + ".zip")
         self._download(host, filename)
-        self._validate(filename)
+        _ = self._validate(filename)
 
     def reexport(self, guid: str, destdir: Path = Path(".")) -> None:
         host = self.host + "/landesarchiv/reexport/" + guid
         filename = destdir / (guid + "_reexport.zip")
         self._download(host, filename)
-        self._validate(filename)
+        _ = self._validate(filename)
 
     def _download(self, host: str, filename: Path) -> None:
         headers = {"Accept": "application/zip"}
@@ -57,8 +58,8 @@ class BasisWebExport:
         host = self.host + "/landesarchiv/commit/" + guid
         self.session.put(host)
 
-    def _validate(self, zipfile: Path) -> list[str]:
-        errors: list[str] = []
+    def _validate(self, zipfile: Path) -> bool:
+        self.valid = True
         with TemporaryDirectory() as d:
             with ZipFile(zipfile) as z:
                 z.extractall(path=d)
@@ -66,18 +67,25 @@ class BasisWebExport:
                 for f in Path(d).glob("*.xml"):
                     xml = etree.parse(str(f.resolve()))
                     if not self.schema.validate(xml):
-                        errors.append("Invalid XML: " + str(f))
+                        logging.error("invalid XML: %s", f)
+                        self.valid = False
             xml = etree.parse(str(Path(d) / "rueckgrat.xml"))
             ns = {None: "http://www.basisweb.de/api/landesarchiv/v1"}
+            guid = xml.find("//TransaktionsId", ns).text
             files_xml = {x.text for x in xml.findall("//Link", ns)}
             files_zip = {x.name for x in Path(d).glob("*.xml")}
             files_zip.remove("rueckgrat.xml")
             for f in files_xml.difference(files_zip):
-                errors.append("Expected but not found in ZIP: " + f)
+                logging.error("expected but not found in ZIP: %s", f)
+                self.valid = False
             for f in files_zip.difference(files_xml):
-                errors.append("Unexpected but found in ZIP: " + f)
-        print(errors)
-        return errors
+                logging.error("unexpected but found in ZIP: %s", f)
+                self.valid = False
+        if self.valid:
+            logging.info("VALID %s %s", guid, zipfile)
+        else:
+            logging.error("INVALID %s %s", guid, zipfile)
+        return self.valid
 
 
 def get_env() -> Namespace:
@@ -99,6 +107,9 @@ def get_env() -> Namespace:
                             help="IP range for which no proxy should be used")
         parser.add_argument("--schema", type=Path,
                             help="XML schema used for validation")
+        parser.add_argument("--log", choices=("INFO", "WARNING", "ERROR"),
+                            default="ERROR",
+                            help="log level (default ERROR)")
         subparsers = parser.add_subparsers()
         parser_export = subparsers.add_parser(
             "export", help="export data for given prisons and years")
@@ -124,6 +135,7 @@ def get_env() -> Namespace:
                --password '!@#42'
                --noproxy 10.0.0.0/8
                --schema basisweb.xsd
+               --log INFO
                export 512
     basiswebdl --config ./basiswebdl.ini export 512
     """
@@ -145,6 +157,8 @@ def get_env() -> Namespace:
             env.noproxy = from_conf(conf, "connection.noproxy", "")
         if not env.schema:
             env.schema = from_conf(conf, "validation.schema", "")
+        if not env.log:
+            env.log = from_conf(conf, "validation.log", "ERROR")
         return env
 
     def from_conf(conf: ConfigParser, key: str, default: str) -> str:
@@ -179,12 +193,12 @@ def get_env() -> Namespace:
 if __name__ == "__main__":
     env = get_env()
     os.environ["no_proxy"] = env.noproxy
+    logging.basicConfig(format="%(levelname)s: %(message)s", level=env.log)
     bw = BasisWebExport(env.host, env.user, env.password, env.schema)
     if hasattr(env, "export"):
         (prisons, years, errors) = env.export
         for e in errors:
-            print("Ignored value " + e +
-                  " - neither a prison number nor a year.")
+            logging.error("ignored value %s - neither prison nor year", e)
         if not years:
             for p in prisons:
                 bw.export(p, destdir=env.dest)

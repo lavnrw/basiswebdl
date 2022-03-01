@@ -30,6 +30,7 @@ class BasisWebExport:
                    "Benutzer": user,
                    "Passwort": password}
         token = self.session.post(host, headers=headers)
+        logging.debug("login successful")
         return {"Authorization": "Bearer " + token.text}
 
     def export(self, prison: str, year: str = None, destdir: Path = Path(".")) -> None:
@@ -53,10 +54,12 @@ class BasisWebExport:
         with open(filename, "wb") as f:
             for c in data.iter_content(chunk_size=128):
                 f.write(c)
+        logging.debug("downloaded %s", filename)
 
     def commit(self, guid: str) -> None:
         host = self.host + "/landesarchiv/commit/" + guid
         self.session.put(host)
+        logging.debug("committed %s", guid)
 
     def _validate(self, zipfile: Path) -> bool:
         self.valid = True
@@ -107,7 +110,8 @@ def get_env() -> Namespace:
                             help="don't use the system proxy")
         parser.add_argument("--schema", type=Path,
                             help="XML schema used for validation")
-        parser.add_argument("--log", choices=("INFO", "WARNING", "ERROR"),
+        parser.add_argument("--log",
+                            choices=("ERROR", "WARNING", "INFO", "DEBUG"),
                             help="log level (default ERROR)")
         subparsers = parser.add_subparsers()
         parser_export = subparsers.add_parser(

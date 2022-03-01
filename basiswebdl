@@ -15,7 +15,6 @@ class BasisWebExport:
     def __init__(self, host: str, user: str, password: str, schemafile: Path = None) -> None:
         self.host = host.rstrip('/')
         self.session = requests.Session()
-        self.session.verify = False  # Do not check TLS certificates.
         self.session.headers.update(self._token(user, password))
         self.schema = None
         if schemafile:  # XML validation is optional.

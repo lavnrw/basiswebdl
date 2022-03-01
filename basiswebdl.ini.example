@@ -2,8 +2,8 @@
 # Copy to ~/.basiswebdl.ini and adapt.
 
 [connection]
-# host = https://example.org:8443
-host = https://10.10.10.10:8443
+host = https://example.org:8443
+# host = https://10.10.10.10:8443
 user = alice
 password = !@#42
 noproxy = true

@@ -12,17 +12,18 @@ from lxml import etree
 import logging
 
 class BasisWebExport:
-    def __init__(self, host: str, user: str, password: str, schemafile: Path = None) -> None:
+    def __init__(self, host: str, user: str, password: str, schemafile: Path = Path(".")) -> None:
         self.host = host.rstrip('/')
         self.session = requests.Session()
         self.session.headers.update(self._token(user, password))
         self.schema = None
-        if schemafile:  # XML validation is optional.
-            schemafile.resolve()
+        if schemafile == Path("."):  # pathlib default value
+            logging.info("No schema file provided, skipping XML validation")
+        else:
             if schemafile.exists():
                 self.schema = etree.XMLSchema(etree.parse(str(schemafile)))
             else:
-                logging.error("schema file not found: %s", schemafile)
+                logging.error("Schema file not found: %s", schemafile)
 
     def _token(self, user: str, password: str) -> dict[str, str]:
         host = self.host + "/landesarchiv/login"
@@ -30,7 +31,7 @@ class BasisWebExport:
                    "Benutzer": user,
                    "Passwort": password}
         token = self.session.post(host, headers=headers)
-        logging.debug("login successful")
+        logging.debug("Login successful")
         return {"Authorization": "Bearer " + token.text}
 
     def export(self, prison: str, year: str = None, destdir: Path = Path(".")) -> None:
@@ -54,12 +55,12 @@ class BasisWebExport:
         with open(filename, "wb") as f:
             for c in data.iter_content(chunk_size=128):
                 f.write(c)
-        logging.debug("downloaded %s", filename)
+        logging.info("Exported %s", filename)
 
     def commit(self, guid: str) -> None:
         host = self.host + "/landesarchiv/commit/" + guid
         self.session.put(host)
-        logging.debug("committed %s", guid)
+        logging.info("Committed %s", guid)
 
     def _validate(self, zipfile: Path) -> bool:
         self.valid = True
@@ -70,7 +71,7 @@ class BasisWebExport:
                 for f in Path(d).glob("*.xml"):
                     xml = etree.parse(str(f.resolve()))
                     if not self.schema.validate(xml):
-                        logging.error("invalid XML: %s", f)
+                        logging.error("Invalid XML: %s", f)
                         self.valid = False
             xml = etree.parse(str(Path(d) / "rueckgrat.xml"))
             ns = {None: "http://www.basisweb.de/api/landesarchiv/v1"}
@@ -79,10 +80,10 @@ class BasisWebExport:
             files_zip = {x.name for x in Path(d).glob("*.xml")}
             files_zip.remove("rueckgrat.xml")
             for f in files_xml.difference(files_zip):
-                logging.error("expected but not found in ZIP: %s", f)
+                logging.error("Expected but not found in ZIP: %s", f)
                 self.valid = False
             for f in files_zip.difference(files_xml):
-                logging.error("unexpected but found in ZIP: %s", f)
+                logging.error("Unexpected but found in ZIP: %s", f)
                 self.valid = False
         if self.valid:
             logging.info("VALID %s %s", guid, zipfile)

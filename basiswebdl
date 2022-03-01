@@ -173,8 +173,8 @@ def get_env() -> Namespace:
             env.noproxy = conf["connection"].getboolean("noproxy")
         if not env.schema:
             env.schema = Path(conf["validation"]["schema"])
-        if not env.log:
-            env.log = conf["validation"]["loglevel"]
+        if not env.loglevel:
+            env.loglevel = conf["validation"]["loglevel"]
         return env
 
     def parse_exportlist(export: list[str]) -> tuple[list[str], list[str], list[str]]:

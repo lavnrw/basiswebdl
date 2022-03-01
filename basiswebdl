@@ -19,6 +19,7 @@ class BasisWebExport:
         self.session.headers.update(self._token(user, password))
         self.schema = None
         if schemafile:  # XML validation is optional.
+            schemafile.resolve()
             if schemafile.exists():
                 self.schema = etree.XMLSchema(etree.parse(str(schemafile)))
             else:
@@ -103,8 +104,8 @@ def get_env() -> Namespace:
         parser.add_argument("--host", help="protocol + host + port")
         parser.add_argument("--user", help="user name")
         parser.add_argument("--password", help="password")
-        parser.add_argument("--noproxy",
-                            help="IP range for which no proxy should be used")
+        parser.add_argument("--noproxy", action="store_true",
+                            help="don't use the system proxy")
         parser.add_argument("--schema", type=Path,
                             help="XML schema used for validation")
         parser.add_argument("--log", choices=("INFO", "WARNING", "ERROR"),
@@ -133,7 +134,7 @@ def get_env() -> Namespace:
     basiswebdl --host https://10.10.10.10:8443
                --user alice
                --password '!@#42'
-               --noproxy 10.0.0.0/8
+               --noproxy
                --schema basisweb.xsd
                --log INFO
                export 512
@@ -142,31 +143,36 @@ def get_env() -> Namespace:
 
     def get_conf(filepath: Path) -> ConfigParser:
         conf = ConfigParser()
+        conf.read_dict({
+            "connection": {
+                "host": "http://localhost:80",
+                "user": getpass.getuser(),
+                "password": "",
+                "noproxy": False
+                },
+            "validation": {
+                "schema": "",
+                "log": "ERROR"
+                }
+            })
         conf.read(filepath)
         return conf
 
     def merge_args_with_conf(args: Namespace, conf: ConfigParser) -> Namespace:
         env = args
         if not env.host:
-            env.host = from_conf(conf, "connection.host", "localhost")
+            env.host = conf["connection"]["host"]
         if not env.user:
-            env.user = from_conf(conf, "connection.user", getpass.getuser())
+            env.user = conf["connection"]["user"]
         if not env.password:
-            env.password = from_conf(conf, "connection.password", "")
+            env.password = conf["connection"]["password"]
         if not env.noproxy:
-            env.noproxy = from_conf(conf, "connection.noproxy", "")
+            env.noproxy = conf["connection"].getboolean("noproxy")
         if not env.schema:
-            env.schema = from_conf(conf, "validation.schema", "")
+            env.schema = Path(conf["validation"]["schema"])
         if not env.log:
-            env.log = from_conf(conf, "validation.log", "ERROR")
+            env.log = conf["validation"]["log"]
         return env
-
-    def from_conf(conf: ConfigParser, key: str, default: str) -> str:
-        val = default
-        (s, k) = key.split('.')
-        if s in conf:
-            val = conf[s].get(k, default)
-        return val
 
     def parse_exportlist(export: list[str]) -> tuple[list[str], list[str], list[str]]:
         prisons = []
@@ -192,7 +198,8 @@ def get_env() -> Namespace:
 
 if __name__ == "__main__":
     env = get_env()
-    os.environ["no_proxy"] = env.noproxy
+    if env.noproxy:
+        os.environ["no_proxy"] = "*"
     logging.basicConfig(format="%(levelname)s: %(message)s", level=env.log)
     bw = BasisWebExport(env.host, env.user, env.password, env.schema)
     if hasattr(env, "export"):

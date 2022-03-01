@@ -6,8 +6,8 @@
 host = https://10.10.10.10:8443
 user = alice
 password = !@#42
-noproxy = 10.0.0.0/8
+noproxy = true
 
 [validation]
-schema = basisweb.xsd
+schema = /etc/basisweb.xsd
 log = ERROR

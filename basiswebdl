@@ -51,11 +51,14 @@ class BasisWebExport:
         if commit and valid:
             self.commit(guid)
 
-    def reexport(self, guid: str, destdir: Path = Path(".")) -> None:
+    def reexport(self, guid: str, destdir: Path = Path("."),
+                 commit: bool = False) -> None:
         host = self.host + "/landesarchiv/reexport/" + guid
         filename = destdir / (guid + "_reexport.zip")
         self._download(host, filename)
-        _ = self._validate(filename)
+        (valid, _) = self._validate(filename)
+        if commit and valid:
+            self.commit(guid)
 
     def _download(self, host: str, filename: Path) -> None:
         headers = {"Accept": "application/zip"}
@@ -135,7 +138,7 @@ def get_env() -> Namespace:
         parser.add_argument("--schema", type=Path,
                             help="XML schema used for validation")
         parser.add_argument("--autocommit", action="store_true",
-                            help="automatically commit after export " +
+                            help="automatically commit after (re)export " +
                                  "if validation was successful")
         parser.add_argument("--loglevel",
                             choices=("ERROR", "WARNING", "INFO", "DEBUG"),
@@ -249,7 +252,7 @@ if __name__ == "__main__":
                 bw.export(p, year=y, destdir=env.dest, commit=env.autocommit)
     if hasattr(env, "reexport"):
         for guid in env.reexport:
-            bw.reexport(guid, destdir=env.dest)
+            bw.reexport(guid, destdir=env.dest, commit=env.autocommit)
     if hasattr(env, "commit"):
         for guid in env.commit:
             bw.commit(guid)

@@ -96,7 +96,7 @@ class BasisWebExport:
                 logging.error("Unexpected but found in ZIP: %s", f)
                 self.valid = False
             # Check if names look plausible
-            name_pat = re.compile(r"^(\w|-|\s){2,}$")
+            name_pat = re.compile(r"^(\w|\s|[-.'`,]){2,}$")
             fnames = [x.text for x in xml.findall("//Element/Name", ns)]
             gnames = [x.text for x in xml.findall("//Element/Vorname", ns)]
             if not all(name_pat.fullmatch(x) for x in fnames + gnames):

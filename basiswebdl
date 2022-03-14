@@ -197,7 +197,7 @@ def get_env() -> Namespace:
             env.schema = Path(conf["validation"]["schema"])
         if not env.loglevel:
             env.loglevel = conf["validation"]["loglevel"]
-        if not env.autocommit:
+        if not (hasattr(env, "export") and env.autocommit):
             env.autocommit = conf["validation"].getboolean("autocommit")
         return env
 

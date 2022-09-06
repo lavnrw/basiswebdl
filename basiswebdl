@@ -126,17 +126,19 @@ def get_env() -> Namespace:
             epilog=examples)
         parser.add_argument("-d", "--dest",
                             type=Path, default=Path("."),
-                            metavar="DIR", help="destination directory")
+                            metavar="DIR",
+                            help="destination directory (default .)")
         parser.add_argument("-c", "--config",
                             type=Path, default=Path.home() / ".basiswebdl.ini",
-                            metavar="FILE", help="config file")
+                            metavar="FILE",
+                            help="config file (default ~/.basiswebdl.ini)")
         parser.add_argument("--host", help="protocol + host + port")
         parser.add_argument("--user", help="user name")
         parser.add_argument("--password", help="password")
         parser.add_argument("--noproxy", action="store_true",
                             help="don't use the system proxy")
         parser.add_argument("--schema", type=Path,
-                            help="XML schema used for validation")
+                            help="XML schema file used for validation")
         parser.add_argument("--autocommit", action="store_true",
                             help="automatically commit after (re)export " +
                                  "if validation was successful")

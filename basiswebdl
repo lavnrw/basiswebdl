@@ -104,12 +104,13 @@ class BasisWebExport:
             snames = [x.text for x in xml.findall("//Element/Name", ns)]
             for x in fnames + snames:
                 if len(x) < 2:
-                    logging.error("Suspiciously short name in %s", zipfile)
+                    logging.error("Suspiciously short name '%s' in %s",
+                                  x, zipfile)
                     self.valid = False
                 m = illegal_chars.search(x)
                 if m:
-                    logging.error("Unusual character %s in name in %s",
-                                  m.group(0), zipfile)
+                    logging.error("Unusual character '%s' in name '%s' in %s",
+                                  m.group(0), x, zipfile)
                     self.valid = False
         if self.valid:
             logging.info("VALID %s %s", guid, zipfile)

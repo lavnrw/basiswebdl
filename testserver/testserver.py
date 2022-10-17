@@ -15,14 +15,14 @@ def login():
 
 @app.route("/landesarchiv/export/<prison>")
 def export(prison):
-    return send_file("example.zip")
+    return send_file("666.zip")
 
 
 @app.route("/landesarchiv/reexport/<guid>")
 def reexport(guid):
     # A reexported rueckgrat.xml has no element "/rueckgrat/Header/Jva", so
     # this file actually does not contain correct example data, but never mind.
-    return send_file("example.zip")
+    return send_file("666.zip")
 
 
 @app.route("/landesarchiv/commit/<guid>", methods=["PUT"])

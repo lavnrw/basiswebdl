@@ -6,9 +6,9 @@ host = https://example.org:8443
 # host = https://10.10.10.10:8443
 user = alice
 password = !@#42
-noproxy = true
+noproxy = false
 
 [validation]
 schema = /etc/basisweb.xsd
-loglevel = ERROR
-autocommit = False
+loglevel = INFO
+autocommit = false

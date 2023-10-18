@@ -145,7 +145,7 @@ def get_env() -> Namespace:
                                  "if validation was successful")
         parser.add_argument("--loglevel",
                             choices=("ERROR", "WARNING", "INFO", "DEBUG"),
-                            help="log level (default ERROR)")
+                            help="log level (default INFO)")
         subparsers = parser.add_subparsers()
         parser_export = subparsers.add_parser(
             "export", help="export data for given prisons and years")
@@ -172,7 +172,7 @@ def get_env() -> Namespace:
                --noproxy
                --schema basisweb.xsd
                --autocommit
-               --loglevel INFO
+               --loglevel ERROR
                export 512
     basiswebdl --config ./basiswebdl.ini export 512
     """
@@ -188,7 +188,7 @@ def get_env() -> Namespace:
             },
             "validation": {
                 "schema": "",
-                "loglevel": "ERROR",
+                "loglevel": "INFO",
                 "autocommit": False
             }
         })

@@ -25,7 +25,7 @@ following command will download the respective XML records to ZIP files
 invalid XML (only if you provide a schema file), and names that look
 suspiciously short or contain funny symbols.
 
-~~~
+~~~console
 $ basiswebdl export 512 514
 INFO: Exported 512.zip
 INFO: VALID 2a11987a-abc8-430b-9efd-7ac660032f53
@@ -36,7 +36,7 @@ INFO: VALID 04215618-6907-4db8-9059-62444923a49f
 Make sure the data you downloaded is what you expect, then acknowledge you
 received it using the UUIDs from the `basiswebdl export` command output:
 
-~~~
+~~~console
 $ basiswebdl commit 2a11987a-abc8-430b-9efd-7ac660032f53 04215618-6907-4db8-9059-62444923a49f
 INFO: Committed 2a11987a-abc8-430b-9efd-7ac660032f53
 INFO: Committed 04215618-6907-4db8-9059-62444923a49f
@@ -50,7 +50,7 @@ You can skip the manual `commit` step altogether by using the `--autocommit`
 command line flag (or the respective setting in the config file) to make
 `basiswebdl` automatically commit a transaction if it found no errors:
 
-~~~
+~~~console
 $ basiswebdl --autocommit export 512 514
 INFO: Exported 512.zip
 INFO: VALID 2a11987a-abc8-430b-9efd-7ac660032f53
@@ -66,7 +66,7 @@ There is a very simple local mock API server for local tests. Make sure you have
 installed [flask](https://pypi.org/project/Flask/), then run and query it like
 this:
 
-~~~
+~~~console
 $ ./testserver/run
 $ basiswebdl --config testserver/basiswebdl.ini export 666
 ~~~

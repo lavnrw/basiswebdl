@@ -15,7 +15,9 @@ def login():
 
 @app.route("/landesarchiv/export/<prison>")
 def export(prison):
-    return send_file("666.zip")
+    if prison == "666":
+        return send_file("666.zip")
+    return ""
 
 
 @app.route("/landesarchiv/reexport/<guid>")

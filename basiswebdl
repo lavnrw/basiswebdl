@@ -46,27 +46,41 @@ class BasisWebExport:
         if year:
             host += "?austrittsjahr=" + year
             filename = filename.with_stem(filename.stem + "-" + year)
-        self._download(host, filename)
-        (valid, guid) = self._validate(filename)
-        if commit and valid:
-            self.commit(guid)
+        success = self._download(host, filename)
+        if success:
+            logging.info("Exported %s", filename)
+            (valid, guid) = self._validate(filename)
+            if commit and valid:
+                self.commit(guid)
+        else:
+            if year:
+                logging.info("No data for prison %s in %s", prison, year)
+            else:
+                logging.info("No data for prison %s", prison)
 
     def reexport(self, guid: str, destdir: Path = Path("."),
                  commit: bool = False) -> None:
         host = self.host + "/landesarchiv/reexport/" + guid
         filename = destdir / (guid + "_reexport.zip")
-        self._download(host, filename)
-        (valid, _) = self._validate(filename)
-        if commit and valid:
-            self.commit(guid)
+        success = self._download(host, filename)
+        if success:
+            logging.info("Exported %s", filename)
+            (valid, _) = self._validate(filename)
+            if commit and valid:
+                self.commit(guid)
+        else:
+            logging.error("No data for reexport %s", guid)
 
-    def _download(self, host: str, filename: Path) -> None:
+    def _download(self, host: str, filename: Path) -> bool:
         headers = {"Accept": "application/zip"}
         data = self.session.get(host, headers=headers)
         with open(filename, "wb") as f:
             for c in data.iter_content(chunk_size=128):
                 f.write(c)
-        logging.info("Exported %s", filename)
+        if filename.stat().st_size == 0:
+            filename.unlink()
+            return False
+        return True
 
     def commit(self, guid: str) -> None:
         host = self.host + "/landesarchiv/commit/" + guid

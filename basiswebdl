@@ -104,8 +104,8 @@ class BasisWebExport:
                 # Validate number and names of files
                 xml = etree.parse(str(Path(d) / "rueckgrat.xml"))
                 ns = {None: "http://www.basisweb.de/api/landesarchiv/v1"}
-                guid = xml.find("//TransaktionsId", ns).text
-                files_xml = {x.text for x in xml.findall("//Link", ns)}
+                guid = xml.find(".//TransaktionsId", ns).text
+                files_xml = {x.text for x in xml.findall(".//Link", ns)}
                 files_zip = {x.name for x in Path(d).glob("*.xml")}
                 files_zip.remove("rueckgrat.xml")
                 for f in files_xml.difference(files_zip):
@@ -116,8 +116,9 @@ class BasisWebExport:
                     self.valid = False
                 # Check if names look plausible
                 illegal_chars = re.compile(r"[^-\w\s.'`,/()\"]")
-                fnames = [x.text for x in xml.findall("//Element/Vorname", ns)]
-                snames = [x.text for x in xml.findall("//Element/Name", ns)]
+                fnames = [x.text for x in
+                          xml.findall(".//Element/Vorname", ns)]
+                snames = [x.text for x in xml.findall(".//Element/Name", ns)]
                 for x in fnames + snames:
                     if len(x) < 2:
                         logging.error("Suspiciously short name '%s' in %s",

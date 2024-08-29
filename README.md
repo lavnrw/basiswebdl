@@ -21,9 +21,8 @@ configuration can also be specified using command line options; run `basiswebdl
 
 Now suppose you know that data is available from prisons 512 and 514. The
 following command will download the respective XML records to ZIP files
-`512.zip` and `514.zip`, warning about obvious errors like missing files,
-invalid XML (only if you provide a schema file), and names that look
-suspiciously short or contain funny symbols.
+`512.zip` and `514.zip`, warning you about missing files and (if you provide a
+schema file) about invalid XML.
 
 ~~~console
 $ basiswebdl export 512 514

@@ -114,22 +114,6 @@ class BasisWebExport:
                 for f in files_zip.difference(files_xml):
                     logging.error("Unexpected but found in ZIP: %s", f)
                     self.valid = False
-                # Check if names look plausible
-                illegal_chars = re.compile(r"[^-\w\s.'`,/()\"]")
-                fnames = [x.text for x in
-                          xml.findall(".//Element/Vorname", ns)]
-                snames = [x.text for x in xml.findall(".//Element/Name", ns)]
-                for x in fnames + snames:
-                    if len(x) < 2:
-                        logging.error("Suspiciously short name '%s' in %s",
-                                      x, zipfile)
-                        self.valid = False
-                    m = illegal_chars.search(x)
-                    if m:
-                        logging.error(
-                            "Unusual character '%s' in name '%s' in %s",
-                            m.group(0), x, zipfile)
-                        self.valid = False
         except BadZipFile:
             logging.error("Not a ZIP file: %s", zipfile)
             self.valid = False

@@ -7,6 +7,7 @@ host = https://example.org:8443
 user = alice
 password = !@#42
 noproxy = false
+nosslverification = false
 
 [validation]
 schema = /etc/basisweb.xsd

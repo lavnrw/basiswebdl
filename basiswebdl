@@ -15,10 +15,15 @@ import requests
 
 
 class BasisWebExport:
-    def __init__(self, host: str, user: str, password: str,
-                 schemafile: Path = Path(".")) -> None:
+    def __init__(self,
+                 host: str,
+                 user: str,
+                 password: str,
+                 schemafile: Path = Path("."),
+                 nosslverification: bool = False) -> None:
         self.host = host.rstrip('/')
         self.session = requests.Session()
+        self.session.verify = not nosslverification
         self.session.headers.update(self._token(user, password))
         self.valid = True
         self.schema = None
@@ -143,6 +148,8 @@ def get_env() -> Namespace:
         parser.add_argument("--password", help="password")
         parser.add_argument("--noproxy", action="store_true",
                             help="don't use the system proxy")
+        parser.add_argument("--nosslverification", action="store_true",
+                            help="don't verify SSL certificates")
         parser.add_argument("--schema", type=Path,
                             help="XML schema file used for validation")
         parser.add_argument("--autocommit", action="store_true",
@@ -189,7 +196,8 @@ def get_env() -> Namespace:
                 "host": "http://localhost:80",
                 "user": getpass.getuser(),
                 "password": "",
-                "noproxy": False
+                "noproxy": False,
+                "nosslverification": False
             },
             "validation": {
                 "schema": "",
@@ -210,6 +218,9 @@ def get_env() -> Namespace:
             env.password = conf["connection"]["password"]
         if not env.noproxy:  # i.e., not set via --noproxy
             env.noproxy = conf["connection"].getboolean("noproxy")
+        if not env.nosslverification:
+            env.nosslverification = conf["connection"].getboolean(
+                "nosslverification")
         if not env.schema:
             env.schema = Path(conf["validation"]["schema"])
         if not env.loglevel:
@@ -247,7 +258,8 @@ if __name__ == "__main__":
         os.environ["no_proxy"] = "*"
     logging.basicConfig(format="%(levelname)s: %(message)s",
                         level=env.loglevel)
-    bw = BasisWebExport(env.host, env.user, env.password, env.schema)
+    bw = BasisWebExport(env.host, env.user, env.password,
+                        env.schema, env.nosslverification)
     if hasattr(env, "export"):
         (prisons, years, errors) = env.export
         for e in errors:
